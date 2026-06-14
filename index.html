@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sports 2026</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <style>
     :root {
       --bg: #0d0d14;
@@ -312,7 +313,8 @@ async function loadWC() {
   const app = document.getElementById('wc-app');
   app.innerHTML = `<div class="status"><span class="spinner gold"></span> Loading matches…</div>`;
   try {
-    const res = await fetch('https://api.football-data.org/v4/competitions/WC/matches?status=FINISHED', {
+    const target = 'https://api.football-data.org/v4/competitions/WC/matches?status=FINISHED';
+    const res = await fetch('https://corsproxy.io/?' + encodeURIComponent(target), {
       headers: { 'X-Auth-Token': getWcKey() }
     });
     if (!res.ok) throw new Error(String(res.status));
