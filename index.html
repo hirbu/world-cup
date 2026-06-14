@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sports 2026</title>
+  <style>
+    :root {
+      --bg: #0d0d14;
+      --surface: #16161f;
+      --border: #252535;
+      --text: #e4e4f0;
+      --text-dim: #6b6b88;
+      --gold: #d4a843;
+      --green: #3fa35f;
+      --youtube: #e05252;
+      --f1-red: #e8002d;
+      --radius: 10px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 1.5rem 1rem 4rem;
+    }
+
+    /* Fixed-height header with absolutely-positioned titles so switching never reflows */
+    header {
+      height: 52px;
+      position: relative;
+      margin-bottom: 1.25rem;
+    }
+
+    .page-title {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.18s;
+    }
+
+    .page-title.visible { opacity: 1; pointer-events: auto; }
+    .page-title svg { flex-shrink: 0; }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 1.75rem;
+    }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--text-dim);
+      font-size: 0.88rem;
+      font-weight: 600;
+      padding: 0.6rem 1.1rem 0.75rem;
+      cursor: pointer;
+      margin-bottom: -1px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn[data-tab="wc"].active { color: var(--gold);   border-bottom-color: var(--gold); }
+    .tab-btn[data-tab="f1"].active { color: var(--f1-red); border-bottom-color: var(--f1-red); }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* Setup box */
+    .setup-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+    .setup-box h2 { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--gold); }
+    .setup-box p  { font-size: 0.8rem; color: var(--text-dim); margin-bottom: 0.9rem; line-height: 1.5; }
+    .setup-box a  { color: #8888dd; }
+    .key-row { display: flex; gap: 0.5rem; }
+    .key-input {
+      flex: 1; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; color: var(--text); font-size: 0.85rem;
+      padding: 0.5rem 0.75rem; outline: none;
+    }
+    .key-input:focus { border-color: #444460; }
+    .btn-save {
+      background: #1f2a1f; color: var(--green); border: 1px solid #2a3d2a;
+      border-radius: 6px; padding: 0.5rem 1rem; font-size: 0.8rem;
+      font-weight: 600; cursor: pointer;
+    }
+    .btn-save:hover { background: #253025; }
+
+    /* Status */
+    .status { text-align: center; padding: 2.5rem 1rem; color: var(--text-dim); font-size: 0.85rem; }
+    .status.error { color: #e07070; }
+    .spinner {
+      display: inline-block; width: 18px; height: 18px;
+      border: 2px solid var(--border); border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle; margin-right: 0.5rem;
+    }
+    .spinner.gold { border-top-color: var(--gold); }
+    .spinner.red  { border-top-color: var(--f1-red); }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .section-label {
+      font-size: 0.7rem; font-weight: 600; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text-dim); margin-bottom: 0.75rem;
+    }
+
+    .card-list { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 2.5rem; }
+
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 0.9rem 1rem;
+      transition: border-color 0.15s;
+    }
+    .card:hover { border-color: #333348; }
+
+    .card-meta {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 0.55rem;
+    }
+    .card-tag {
+      font-size: 0.7rem; font-weight: 600; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--text-dim);
+      background: var(--border); padding: 0.2rem 0.5rem; border-radius: 4px;
+    }
+    .card-date { font-size: 0.75rem; color: var(--text-dim); }
+
+    /* WC */
+    .match-teams { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; }
+    .team { flex: 1; font-size: 0.95rem; font-weight: 600; }
+    .team.home { text-align: right; }
+    .team.away { text-align: left; }
+    .score {
+      font-size: 1.1rem; font-weight: 700; color: var(--gold);
+      min-width: 50px; text-align: center; letter-spacing: 0.05em;
+    }
+
+    /* F1 meeting */
+    .meeting-name    { font-size: 1rem; font-weight: 700; margin-bottom: 0.15rem; }
+    .meeting-circuit { font-size: 0.78rem; color: var(--text-dim); margin-bottom: 0.85rem; }
+
+    .session-row {
+      display: flex; align-items: center; gap: 0.6rem;
+      padding: 0.45rem 0; border-top: 1px solid var(--border);
+    }
+    .session-label { font-size: 0.8rem; font-weight: 600; min-width: 100px; }
+    .session-date  { font-size: 0.75rem; color: var(--text-dim); flex: 1; }
+
+    /* Buttons */
+    .card-actions { display: flex; gap: 0.5rem; align-items: center; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      padding: 0.4rem 0.75rem; border-radius: 6px; border: none;
+      font-size: 0.78rem; font-weight: 500; cursor: pointer;
+      text-decoration: none; white-space: nowrap;
+      transition: transform 0.1s;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-yt { background: #2a1a1a; color: var(--youtube); border: 1px solid #3d1f1f; }
+    .btn-yt:hover { background: #331f1f; }
+    .btn-watched, .btn-unwatch { min-width: 120px; justify-content: center; margin-left: auto; height: 2rem; font-size: 0.78rem; }
+    .btn-watched { background: #1a2a1f; color: var(--green); border: 1px solid #1f3527; }
+    .btn-watched:hover { background: #1f3026; }
+    .btn-unwatch { background: #1e1e14; color: #8a8a5a; border: 1px solid #2a2a1a; }
+    .btn-unwatch:hover { background: #25251a; }
+
+    /* Watched section */
+    .watched-section { border-top: 1px solid var(--border); padding-top: 1.5rem; }
+    .watched-toggle {
+      display: flex; align-items: center; gap: 0.5rem;
+      background: none; border: none; color: var(--text-dim);
+      font-size: 0.8rem; font-weight: 600; cursor: pointer; padding: 0;
+      margin-bottom: 1rem; letter-spacing: 0.05em; text-transform: uppercase;
+    }
+    .watched-toggle:hover { color: var(--text); }
+    .watched-toggle .arrow { display: inline-block; transition: transform 0.2s; font-size: 0.65rem; }
+    .watched-toggle.open .arrow { transform: rotate(90deg); }
+    .watched-list { display: none; flex-direction: column; gap: 0.6rem; }
+    .watched-list.visible { display: flex; }
+    .watched-list .card { opacity: 0.5; }
+    .watched-list .card:hover { opacity: 0.78; }
+
+    .empty-state { text-align: center; color: var(--text-dim); font-size: 0.85rem; padding: 3rem 1rem; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1 id="title-wc" class="page-title visible">⚽ World Cup 2026</h1>
+  <h1 id="title-f1" class="page-title">🏎️ Formula 1 2026</h1>
+</header>
+
+<nav class="tabs">
+  <button class="tab-btn active" data-tab="wc" onclick="switchTab('wc')">⚽ World Cup</button>
+  <button class="tab-btn" data-tab="f1" onclick="switchTab('f1')">🏎️ Formula 1</button>
+</nav>
+
+<div id="tab-wc" class="tab-panel active">
+  <div id="wc-setup" class="setup-box" style="display:none">
+    <h2>API Key Required</h2>
+    <p>Live data comes from <a href="https://www.football-data.org/client/register" target="_blank" rel="noopener">football-data.org</a>. Register free (just an email) to get your key.</p>
+    <div class="key-row">
+      <input id="wc-key-input" class="key-input" type="password" placeholder="Paste your API key…" autocomplete="off" />
+      <button class="btn-save" onclick="saveWcKey()">Save</button>
+    </div>
+  </div>
+  <div id="wc-app"></div>
+</div>
+
+<div id="tab-f1" class="tab-panel">
+  <div id="f1-app"></div>
+</div>
+
+<script>
+// ── Tabs ─────────────────────────────────────────────────────────────────────
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.page-title').forEach(t => t.classList.remove('visible'));
+  document.getElementById(`tab-${tab}`).classList.add('active');
+  document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+  document.getElementById(`title-${tab}`).classList.add('visible');
+  if (tab === 'f1' && !f1Loaded) loadF1();
+}
+
+// ── Storage ───────────────────────────────────────────────────────────────────
+
+const WC_KEY_STORE   = 'wc2026_apikey';
+const WC_WATCH_STORE = 'wc2026_watched';
+const F1_WATCH_STORE = 'f12026_sessions_watched';
+
+function getWcKey()         { return localStorage.getItem(WC_KEY_STORE) || ''; }
+function getWatched(k)      { try { return new Set(JSON.parse(localStorage.getItem(k) || '[]')); } catch { return new Set(); } }
+function saveWatched(k, s)  { localStorage.setItem(k, JSON.stringify([...s])); }
+
+function saveWcKey() {
+  const val = document.getElementById('wc-key-input').value.trim();
+  if (!val) return;
+  localStorage.setItem(WC_KEY_STORE, val);
+  document.getElementById('wc-setup').style.display = 'none';
+  loadWC();
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function fmtDate(str) {
+  return new Date(str + 'T12:00:00Z').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
+function ytUrl(q) {
+  return `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
+}
+
+function makeWatchedSection(items, makeCardFn) {
+  const section = document.createElement('div');
+  section.className = 'watched-section';
+
+  const toggle = document.createElement('button');
+  toggle.className = 'watched-toggle';
+  toggle.innerHTML = `<span class="arrow">▶</span> Watched (${items.length})`;
+
+  const list = document.createElement('div');
+  list.className = 'watched-list';
+  items.forEach(item => list.appendChild(makeCardFn(item)));
+
+  toggle.addEventListener('click', () => {
+    const open = list.classList.toggle('visible');
+    toggle.classList.toggle('open', open);
+  });
+
+  section.appendChild(toggle);
+  section.appendChild(list);
+  return section;
+}
+
+// ── World Cup ─────────────────────────────────────────────────────────────────
+
+async function loadWC() {
+  const app = document.getElementById('wc-app');
+  app.innerHTML = `<div class="status"><span class="spinner gold"></span> Loading matches…</div>`;
+  try {
+    const res = await fetch('https://api.football-data.org/v4/competitions/WC/matches?status=FINISHED', {
+      headers: { 'X-Auth-Token': getWcKey() }
+    });
+    if (!res.ok) throw new Error(String(res.status));
+    const { matches = [] } = await res.json();
+    renderWC(app, matches);
+  } catch (err) {
+    if (/40[013]/.test(err.message)) {
+      localStorage.removeItem(WC_KEY_STORE);
+      document.getElementById('wc-setup').style.display = 'block';
+      app.innerHTML = '<div class="status error">Invalid API key — please try again.</div>';
+    } else {
+      app.innerHTML = `<div class="status error">Failed to load matches.<br><small>${err.message}</small></div>`;
+    }
+  }
+}
+
+function renderWC(app, matches) {
+  const watched = getWatched(WC_WATCH_STORE);
+  app.innerHTML = '';
+
+  const pending = matches.filter(m => !watched.has(String(m.id)));
+  const done    = matches.filter(m =>  watched.has(String(m.id)));
+
+  if (!pending.length && !done.length) {
+    app.innerHTML = '<div class="empty-state">No finished matches yet.</div>';
+    return;
+  }
+
+  if (!pending.length) {
+    app.innerHTML = '<div class="empty-state">You\'ve watched everything! 🎉</div>';
+  } else {
+    const label = document.createElement('div');
+    label.className = 'section-label';
+    label.textContent = `${pending.length} match${pending.length !== 1 ? 'es' : ''}`;
+    app.appendChild(label);
+
+    const list = document.createElement('div');
+    list.className = 'card-list';
+    pending.forEach(m => list.appendChild(makeWcCard(m, false)));
+    app.appendChild(list);
+  }
+
+  if (done.length) app.appendChild(makeWatchedSection(done, m => makeWcCard(m, true)));
+
+  if (wcAbort) wcAbort.abort();
+  wcAbort = new AbortController();
+  app.addEventListener('click', e => {
+    const btn = e.target.closest('button[data-id]');
+    if (!btn) return;
+    const w = getWatched(WC_WATCH_STORE);
+    btn.classList.contains('btn-watched') ? w.add(btn.dataset.id) : w.delete(btn.dataset.id);
+    saveWatched(WC_WATCH_STORE, w);
+    renderWC(app, matches);
+  }, { signal: wcAbort.signal });
+}
+
+function makeWcCard(m, isWatched) {
+  const home  = m.homeTeam.name;
+  const away  = m.awayTeam.name;
+  const ft    = m.score?.fullTime;
+  const score = ft?.home != null ? `${ft.home} – ${ft.away}` : '— vs —';
+  const group = (m.group || '').replace('GROUP_', 'Group ');
+
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = `
+    <div class="card-meta">
+      <span class="card-tag">${group || m.stage || ''}</span>
+      <span class="card-date">${fmtDate(m.utcDate.split('T')[0])}</span>
+    </div>
+    <div class="match-teams">
+      <span class="team home">${home}</span>
+      <span class="score">${score}</span>
+      <span class="team away">${away}</span>
+    </div>
+    <div class="card-actions">
+      <a class="btn btn-yt" href="${ytUrl(`${home} vs ${away} FIFA World Cup 2026 highlights`)}" target="_blank" rel="noopener">▶ Highlights</a>
+      ${isWatched
+        ? `<button class="btn btn-unwatch" data-id="${m.id}">↩ Unwatch</button>`
+        : `<button class="btn btn-watched" data-id="${m.id}">✓ Mark watched</button>`}
+    </div>`;
+  return card;
+}
+
+// ── Formula 1 ─────────────────────────────────────────────────────────────────
+// Uses Jolpica (Ergast replacement) for the race calendar.
+// Session types are derived from the race date; sprint weekends auto-detected.
+
+let f1Loaded = false;
+const DAY = 864e5;
+let wcAbort = null;
+let f1Abort = null;
+
+async function loadF1() {
+  f1Loaded = true;
+  const app = document.getElementById('f1-app');
+  app.innerHTML = `<div class="status"><span class="spinner red"></span> Loading races…</div>`;
+
+  try {
+    const [calRes, sprintRes] = await Promise.all([
+      fetch('https://api.jolpi.ca/ergast/f1/2026.json?limit=30'),
+      fetch('https://api.jolpi.ca/ergast/f1/2026/sprint.json?limit=30'),
+    ]);
+
+    if (!calRes.ok) throw new Error(`Calendar fetch failed (${calRes.status})`);
+    const calData = await calRes.json();
+    const allRaces = calData?.MRData?.RaceTable?.Races || [];
+
+    const sprintRounds = new Set();
+    if (sprintRes.ok) {
+      const sprintData = await sprintRes.json();
+      (sprintData?.MRData?.RaceTable?.Races || []).forEach(r => sprintRounds.add(r.round));
+    }
+
+    const now = new Date();
+    const pastRaces = allRaces.filter(r => {
+      return new Date(`${r.date}T${r.time || '15:00:00Z'}`) < now;
+    });
+
+    if (!pastRaces.length) {
+      app.innerHTML = '<div class="empty-state">No completed races yet for 2026.</div>';
+      return;
+    }
+
+    const weekends = pastRaces.map(r => {
+      const raceDate = new Date(`${r.date}T12:00:00Z`);
+      const sat = new Date(+raceDate - DAY);
+      const fri = new Date(+raceDate - 2 * DAY);
+      const fmt = d => d.toISOString().split('T')[0];
+      const isSprint = sprintRounds.has(r.round);
+
+      const sessions = isSprint
+        ? [
+            { id: `r${r.round}-fp1`,    label: 'FP1',          date: fmt(fri) },
+            { id: `r${r.round}-sq`,     label: 'Sprint Quali', date: fmt(fri) },
+            { id: `r${r.round}-sprint`, label: 'Sprint',       date: fmt(sat) },
+            { id: `r${r.round}-q`,      label: 'Qualifying',   date: fmt(sat) },
+            { id: `r${r.round}-race`,   label: 'Race',         date: r.date   },
+          ]
+        : [
+            { id: `r${r.round}-fp1`,  label: 'FP1',        date: fmt(fri) },
+            { id: `r${r.round}-fp2`,  label: 'FP2',        date: fmt(fri) },
+            { id: `r${r.round}-fp3`,  label: 'FP3',        date: fmt(sat) },
+            { id: `r${r.round}-q`,    label: 'Qualifying', date: fmt(sat) },
+            { id: `r${r.round}-race`, label: 'Race',       date: r.date   },
+          ];
+
+      return {
+        _id: `r${r.round}`,
+        round: r.round,
+        name: r.raceName,
+        circuit: r.Circuit.circuitName,
+        location: r.Circuit.Location.locality,
+        country: r.Circuit.Location.country,
+        date: r.date,
+        sessions,
+      };
+    });
+
+    renderF1(app, weekends);
+  } catch (err) {
+    app.innerHTML = `<div class="status error">Failed to load F1 data.<br><small>${err.message}</small></div>`;
+  }
+}
+
+function allWatched(weekend, watchedSet) {
+  return weekend.sessions.every(s => watchedSet.has(s.id));
+}
+
+function renderF1(app, weekends) {
+  const watched = getWatched(F1_WATCH_STORE);
+  app.innerHTML = '';
+
+  const pending = weekends.filter(w => !allWatched(w, watched));
+  const done    = weekends.filter(w =>  allWatched(w, watched));
+
+  if (!pending.length && !done.length) {
+    app.innerHTML = '<div class="empty-state">No sessions yet.</div>';
+    return;
+  }
+
+  if (!pending.length) {
+    app.innerHTML = '<div class="empty-state">You\'ve watched everything! 🎉</div>';
+  } else {
+    const label = document.createElement('div');
+    label.className = 'section-label';
+    label.textContent = `${pending.length} race weekend${pending.length !== 1 ? 's' : ''}`;
+    app.appendChild(label);
+
+    const list = document.createElement('div');
+    list.className = 'card-list';
+    pending.forEach(w => list.appendChild(makeF1Card(w, watched)));
+    app.appendChild(list);
+  }
+
+  if (done.length) {
+    app.appendChild(makeWatchedSection(done, w => makeF1Card(w, getWatched(F1_WATCH_STORE))));
+  }
+
+  if (f1Abort) f1Abort.abort();
+  f1Abort = new AbortController();
+  app.addEventListener('click', e => {
+    const btn = e.target.closest('[data-sid]');
+    if (!btn) return;
+    const w = getWatched(F1_WATCH_STORE);
+    w.has(btn.dataset.sid) ? w.delete(btn.dataset.sid) : w.add(btn.dataset.sid);
+    saveWatched(F1_WATCH_STORE, w);
+    renderF1(app, weekends);
+  }, { signal: f1Abort.signal });
+}
+
+function makeF1Card(weekend, watched) {
+  const card = document.createElement('div');
+  card.className = 'card';
+
+  const sessionsHtml = weekend.sessions.map(s => {
+    const on = watched.has(s.id);
+    const q  = `${weekend.name} 2026 F1 ${s.label} highlights`;
+    return `
+      <div class="session-row">
+        <span class="session-label">${s.label}</span>
+        <span class="session-date">${fmtDate(s.date)}</span>
+        <a class="btn btn-yt" href="${ytUrl(q)}" target="_blank" rel="noopener">▶ Highlights</a>
+        ${on
+          ? `<button class="btn btn-unwatch" data-sid="${s.id}">↩ Unwatch</button>`
+          : `<button class="btn btn-watched" data-sid="${s.id}">✓ Mark watched</button>`}
+      </div>`;
+  }).join('');
+
+  card.innerHTML = `
+    <div class="card-meta">
+      <span class="card-tag">Round ${weekend.round}</span>
+      <span class="card-date">${fmtDate(weekend.date)}</span>
+    </div>
+    <div class="meeting-name">${weekend.name}</div>
+    <div class="meeting-circuit">${weekend.location}, ${weekend.country}</div>
+    ${sessionsHtml}`;
+
+  return card;
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+
+if (getWcKey()) {
+  loadWC();
+} else {
+  document.getElementById('wc-setup').style.display = 'block';
+  document.getElementById('wc-app').innerHTML = '<div class="status">Enter your API key above to load matches.</div>';
+}
+</script>
+</body>
+</html>
