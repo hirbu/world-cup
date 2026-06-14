@@ -163,10 +163,20 @@
 
     .session-row {
       display: flex; align-items: center; gap: 0.6rem;
-      padding: 0.45rem 0; border-top: 1px solid var(--border);
+      padding: 0.5rem 0; border-top: 1px solid var(--border);
+      flex-wrap: wrap;
     }
-    .session-label { font-size: 0.8rem; font-weight: 600; min-width: 100px; }
-    .session-date  { font-size: 0.75rem; color: var(--text-dim); flex: 1; }
+    .session-info { display: flex; align-items: center; gap: 0.6rem; flex: 1; min-width: 0; }
+    .session-label { font-size: 0.8rem; font-weight: 600; min-width: 90px; flex-shrink: 0; }
+    .session-date  { font-size: 0.75rem; color: var(--text-dim); }
+    .session-btns  { display: flex; gap: 0.5rem; align-items: center; }
+
+    @media (max-width: 520px) {
+      .session-info { width: 100%; flex: none; }
+      .session-btns { width: 100%; }
+      .session-btns .btn-watched,
+      .session-btns .btn-unwatch { margin-left: 0; flex: 1; }
+    }
 
     /* Buttons */
     .card-actions { display: flex; gap: 0.5rem; align-items: center; }
@@ -523,12 +533,16 @@ function makeF1Card(weekend, watched) {
     const q  = `${weekend.name} 2026 F1 ${s.label} highlights`;
     return `
       <div class="session-row">
-        <span class="session-label">${s.label}</span>
-        <span class="session-date">${fmtDate(s.date)}</span>
-        <a class="btn btn-yt" href="${ytUrl(q)}" target="_blank" rel="noopener">▶ Highlights</a>
-        ${on
-          ? `<button class="btn btn-unwatch" data-sid="${s.id}">↩ Unwatch</button>`
-          : `<button class="btn btn-watched" data-sid="${s.id}">✓ Mark watched</button>`}
+        <div class="session-info">
+          <span class="session-label">${s.label}</span>
+          <span class="session-date">${fmtDate(s.date)}</span>
+        </div>
+        <div class="session-btns">
+          <a class="btn btn-yt" href="${ytUrl(q)}" target="_blank" rel="noopener">▶ Highlights</a>
+          ${on
+            ? `<button class="btn btn-unwatch" data-sid="${s.id}">↩ Unwatch</button>`
+            : `<button class="btn btn-watched" data-sid="${s.id}">✓ Mark watched</button>`}
+        </div>
       </div>`;
   }).join('');
 
