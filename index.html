@@ -190,6 +190,25 @@
     .watched-list .card:hover { opacity: 0.78; }
 
     .empty-state { text-align: center; color: var(--text-dim); font-size: 0.85rem; padding: 3rem 1rem; }
+
+    footer {
+      text-align: center;
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .btn-clear-cache {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-dim);
+      font-size: 0.75rem;
+      padding: 0.4rem 0.9rem;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .btn-clear-cache:hover { color: var(--text); border-color: #444460; }
   </style>
 </head>
 <body>
@@ -212,6 +231,10 @@
   <div id="f1-app"></div>
 </div>
 
+<footer>
+  <button class="btn-clear-cache" onclick="clearCache()">↺ Clear cache</button>
+</footer>
+
 <script>
 // ── Tabs ─────────────────────────────────────────────────────────────────────
 
@@ -229,9 +252,32 @@ function switchTab(tab) {
 
 const WC_WATCH_STORE = 'wc2026_watched';
 const F1_WATCH_STORE = 'f12026_sessions_watched';
+const WC_CACHE_KEY   = 'cache_wc_matches';
+const F1_CACHE_KEY   = 'cache_f1_weekends';
+const CACHE_TTL      = 10 * 60 * 1000; // 10 minutes
 
 function getWatched(k)      { try { return new Set(JSON.parse(localStorage.getItem(k) || '[]')); } catch { return new Set(); } }
 function saveWatched(k, s)  { localStorage.setItem(k, JSON.stringify([...s])); }
+
+function getCached(key) {
+  try {
+    const { ts, data } = JSON.parse(localStorage.getItem(key) || 'null') || {};
+    if (!ts || Date.now() - ts > CACHE_TTL) return null;
+    return data;
+  } catch { return null; }
+}
+
+function setCache(key, data) {
+  localStorage.setItem(key, JSON.stringify({ ts: Date.now(), data }));
+}
+
+function clearCache() {
+  localStorage.removeItem(WC_CACHE_KEY);
+  localStorage.removeItem(F1_CACHE_KEY);
+  f1Loaded = false;
+  loadWC();
+  if (document.getElementById('tab-f1').classList.contains('active')) loadF1();
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -269,20 +315,18 @@ function makeWatchedSection(items, makeCardFn) {
 
 async function loadWC() {
   const app = document.getElementById('wc-app');
+  const cached = getCached(WC_CACHE_KEY);
+  if (cached) { renderWC(app, cached); return; }
+
   app.innerHTML = `<div class="status"><span class="spinner gold"></span> Loading matches…</div>`;
   try {
     const res = await fetch('https://wc-proxy.hirbu-z.workers.dev/');
     if (!res.ok) throw new Error(String(res.status));
     const { matches = [] } = await res.json();
+    setCache(WC_CACHE_KEY, matches);
     renderWC(app, matches);
   } catch (err) {
-    if (/40[013]/.test(err.message)) {
-      localStorage.removeItem(WC_KEY_STORE);
-      document.getElementById('wc-setup').style.display = 'block';
-      app.innerHTML = '<div class="status error">Invalid API key — please try again.</div>';
-    } else {
-      app.innerHTML = `<div class="status error">Failed to load matches.<br><small>${err.message}</small></div>`;
-    }
+    app.innerHTML = `<div class="status error">Failed to load matches.<br><small>${err.message}</small></div>`;
   }
 }
 
@@ -366,6 +410,9 @@ let f1Abort = null;
 async function loadF1() {
   f1Loaded = true;
   const app = document.getElementById('f1-app');
+  const cached = getCached(F1_CACHE_KEY);
+  if (cached) { renderF1(app, cached); return; }
+
   app.innerHTML = `<div class="status"><span class="spinner red"></span> Loading races…</div>`;
 
   try {
@@ -429,6 +476,7 @@ async function loadF1() {
       };
     });
 
+    setCache(F1_CACHE_KEY, weekends);
     renderF1(app, weekends);
   } catch (err) {
     app.innerHTML = `<div class="status error">Failed to load F1 data.<br><small>${err.message}</small></div>`;
