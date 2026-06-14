@@ -313,8 +313,7 @@ async function loadWC() {
   const app = document.getElementById('wc-app');
   app.innerHTML = `<div class="status"><span class="spinner gold"></span> Loading matches…</div>`;
   try {
-    const target = 'https://api.football-data.org/v4/competitions/WC/matches?status=FINISHED';
-    const res = await fetch('https://corsproxy.io/?' + encodeURIComponent(target), {
+    const res = await fetch('https://wc-proxy.hirbu-z.workers.dev/', {
       headers: { 'X-Auth-Token': getWcKey() }
     });
     if (!res.ok) throw new Error(String(res.status));
