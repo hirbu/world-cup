@@ -85,30 +85,6 @@
     .tab-panel { display: none; }
     .tab-panel.active { display: block; }
 
-    /* Setup box */
-    .setup-box {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 1.25rem;
-      margin-bottom: 1.5rem;
-    }
-    .setup-box h2 { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--gold); }
-    .setup-box p  { font-size: 0.8rem; color: var(--text-dim); margin-bottom: 0.9rem; line-height: 1.5; }
-    .setup-box a  { color: #8888dd; }
-    .key-row { display: flex; gap: 0.5rem; }
-    .key-input {
-      flex: 1; background: var(--bg); border: 1px solid var(--border);
-      border-radius: 6px; color: var(--text); font-size: 0.85rem;
-      padding: 0.5rem 0.75rem; outline: none;
-    }
-    .key-input:focus { border-color: #444460; }
-    .btn-save {
-      background: #1f2a1f; color: var(--green); border: 1px solid #2a3d2a;
-      border-radius: 6px; padding: 0.5rem 1rem; font-size: 0.8rem;
-      font-weight: 600; cursor: pointer;
-    }
-    .btn-save:hover { background: #253025; }
 
     /* Status */
     .status { text-align: center; padding: 2.5rem 1rem; color: var(--text-dim); font-size: 0.85rem; }
@@ -229,14 +205,6 @@
 </nav>
 
 <div id="tab-wc" class="tab-panel active">
-  <div id="wc-setup" class="setup-box" style="display:none">
-    <h2>API Key Required</h2>
-    <p>Live data comes from <a href="https://www.football-data.org/client/register" target="_blank" rel="noopener">football-data.org</a>. Register free (just an email) to get your key.</p>
-    <div class="key-row">
-      <input id="wc-key-input" class="key-input" type="password" placeholder="Paste your API key…" autocomplete="off" />
-      <button class="btn-save" onclick="saveWcKey()">Save</button>
-    </div>
-  </div>
   <div id="wc-app"></div>
 </div>
 
@@ -259,21 +227,11 @@ function switchTab(tab) {
 
 // ── Storage ───────────────────────────────────────────────────────────────────
 
-const WC_KEY_STORE   = 'wc2026_apikey';
 const WC_WATCH_STORE = 'wc2026_watched';
 const F1_WATCH_STORE = 'f12026_sessions_watched';
 
-function getWcKey()         { return localStorage.getItem(WC_KEY_STORE) || ''; }
 function getWatched(k)      { try { return new Set(JSON.parse(localStorage.getItem(k) || '[]')); } catch { return new Set(); } }
 function saveWatched(k, s)  { localStorage.setItem(k, JSON.stringify([...s])); }
-
-function saveWcKey() {
-  const val = document.getElementById('wc-key-input').value.trim();
-  if (!val) return;
-  localStorage.setItem(WC_KEY_STORE, val);
-  document.getElementById('wc-setup').style.display = 'none';
-  loadWC();
-}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -313,9 +271,7 @@ async function loadWC() {
   const app = document.getElementById('wc-app');
   app.innerHTML = `<div class="status"><span class="spinner gold"></span> Loading matches…</div>`;
   try {
-    const res = await fetch('https://wc-proxy.hirbu-z.workers.dev/', {
-      headers: { 'X-Auth-Token': getWcKey() }
-    });
+    const res = await fetch('https://wc-proxy.hirbu-z.workers.dev/');
     if (!res.ok) throw new Error(String(res.status));
     const { matches = [] } = await res.json();
     renderWC(app, matches);
@@ -561,12 +517,7 @@ function makeF1Card(weekend, watched) {
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 
-if (getWcKey()) {
-  loadWC();
-} else {
-  document.getElementById('wc-setup').style.display = 'block';
-  document.getElementById('wc-app').innerHTML = '<div class="status">Enter your API key above to load matches.</div>';
-}
+loadWC();
 </script>
 </body>
 </html>
